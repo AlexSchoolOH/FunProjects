@@ -30,7 +30,6 @@
     document.onmousemove = (event) => {
         camera.targetX = ((event.clientX - halfSize[0]) / renderer.width) * 100;
         camera.targetY = ((event.clientY - halfSize[1]) / renderer.height) * 100;
-        console.log(event)
         if (clicked) {
             camera.turnTableTargetYaw += event.movementX / 100;
         }
@@ -80,7 +79,7 @@
 
     let frame = 0;
 
-    const cubePoints = [
+    let modelPoints = [
         [-10,-10,-10],
         [10,-10,-10],
         [-10,10,-10],
@@ -102,7 +101,7 @@
 
     let drawOrder = [];
 
-    const cubeIndices = [
+    let modelIndices = [
         [0,1,8,"#ff0000"],
         [0,2,8,"#ff0000"],
         [2,8,6,"#ff0000"],
@@ -134,6 +133,52 @@
         [13,6,7,"#ffff00"],
     ]
 
+    const loadModel = (scaleMul) => {
+        scaleMul = scaleMul || 1;
+        if (window.model) {
+            modelPoints = [];
+            modelIndices = [];
+
+            let parsing = window.model.split("\n");
+            let material = "";
+
+            parsing.forEach(line => {
+                if (line.includes("usemtl ")) {
+                    material = line.split(" ")[1];
+                    console.log(material);
+                    return;
+                }
+
+                switch (line.charAt(0)) {
+                    case "v":{
+                        //Parse vertices
+                        if (line.charAt(1) == " ") {
+                            const positions = line.replace("  "," ").split(" ");
+
+                            //Cast these to numbers
+                            modelPoints.push([Number(positions[1]) * scaleMul, Number(positions[2]) * scaleMul, Number(positions[3]) * scaleMul]);
+                        }
+                        break;
+                    }
+
+                    case "f":{
+                        const facePoints = line.split(" ");
+                        modelIndices.push([Number(facePoints[1].split("/")[0]) - 1,Number(facePoints[2].split("/")[0]) - 1,Number(facePoints[3].split("/")[0]) - 1,window.matToColor(material)]);
+                        break;
+                    }
+                
+                    default:
+                        break;
+                }
+            });
+        }
+    }
+
+    loadModel(10);
+
+    console.log(modelPoints);
+    console.log(modelIndices);
+
     const rotatePoint = ([x,y,z], yaw, pitch) => {
         let old = [x,y,z];
         x = old[2] * Math.sin(yaw) + old[0] * Math.cos(yaw);
@@ -158,8 +203,8 @@
         camera.y += (camera.targetY - camera.y) * 0.0625;
         camera.turnTableYaw += (camera.turnTableTargetYaw - camera.turnTableYaw) * 0.0625;
 
-        const cubeYaw = frame / 2;
-        const cubePitch = frame;
+        const cubeYaw = Math.sin(frame / 5) * 0.25;
+        const cubePitch = Math.sin(frame / 2.5) * 0.125 + 3.1415962;
 
         gl.fillStyle = "#ffffff";
         gl.fillRect(0,0,renderer.width,renderer.height);
@@ -170,16 +215,16 @@
 
         drawOrder = [];
 
-        for (let cube = 0; cube < 15; cube++) {
-            cubePosition[0] = Math.sin(frame + (cube)) * 50;
-            cubePosition[1] = Math.sin((frame + (cube)) / 2.5) * 50;
-            cubePosition[2] = Math.sin((frame + (cube)) / 1.25) * 50;
-            for (let indice = 0; indice < cubeIndices.length; indice++) {
-                const indices = cubeIndices[indice];
+        for (let cube = 0; cube < 1; cube++) {
+            cubePosition[0] = Math.sin(frame / 5) * 1;
+            cubePosition[1] = Math.sin(frame / 2.5) * 0.5;
+            //cubePosition[2] = Math.sin((frame + (cube)) / 1.25) * 50;
+            for (let indice = 0; indice < modelIndices.length; indice++) {
+                const indices = modelIndices[indice];
     
-                const point1 = rotatePoint(movePoint(rotatePoint(cubePoints[indices[0]],cubeYaw + cube,cubePitch + (cube * 0.25)),cubePosition),camera.turnTableYaw,0.0);
-                const point2 = rotatePoint(movePoint(rotatePoint(cubePoints[indices[1]],cubeYaw + cube,cubePitch + (cube * 0.25)),cubePosition),camera.turnTableYaw,0.0);
-                const point3 = rotatePoint(movePoint(rotatePoint(cubePoints[indices[2]],cubeYaw + cube,cubePitch + (cube * 0.25)),cubePosition),camera.turnTableYaw,0.0);
+                const point1 = rotatePoint(movePoint(rotatePoint(modelPoints[indices[0]],cubeYaw + cube,cubePitch + (cube * 0.25)),cubePosition),camera.turnTableYaw,0.0);
+                const point2 = rotatePoint(movePoint(rotatePoint(modelPoints[indices[1]],cubeYaw + cube,cubePitch + (cube * 0.25)),cubePosition),camera.turnTableYaw,0.0);
+                const point3 = rotatePoint(movePoint(rotatePoint(modelPoints[indices[2]],cubeYaw + cube,cubePitch + (cube * 0.25)),cubePosition),camera.turnTableYaw,0.0);
 
                 point1[0] -= camera.x;
                 point1[1] -= camera.y;
@@ -219,8 +264,9 @@
 
         for (let indice = 0; indice < drawOrder.length; indice++) {
             const curIndice = (drawOrder.length - 1) - indice;
-            const indices = cubeIndices[drawOrder[curIndice][1]];
-            gl.fillStyle = indices[3] + "99";
+            const indices = modelIndices[drawOrder[curIndice][1]];
+            gl.fillStyle = indices[3] + "";
+            gl.strokeStyle = indices[3];
 
             drawTri(
                 drawOrder[curIndice][2],
