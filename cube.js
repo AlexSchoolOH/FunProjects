@@ -43,6 +43,13 @@
         clicked = false;
     }
 
+    document.onwheel = (event) => {
+        camera.FOV += -event.deltaY;
+        if (camera.FOV < 10) {
+            camera.FOV = 10;
+        }
+    }
+
     
     window.onresize = () => {
         renderer.width = window.innerWidth;
