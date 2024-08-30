@@ -3,6 +3,9 @@ style.innerHTML = `
 body {
     color:#0f0f0f;
     font-size:24px;
+    text-wrap: nowrap;
+    white-space: nowrap; 
+    overflow: scroll;
 }
 
 p {
@@ -15,6 +18,7 @@ p {
     margin:0px;
     padding:0px;
     text-wrap: nowrap;
+    white-space: nowrap; 
 }
 
 p:hover {
@@ -22,6 +26,9 @@ p:hover {
 }
 `;
 document.body.appendChild(style);
+document.oncontextmenu = (event) => {
+    event.preventDefault();
+}
 
 const displays = {
     0:"░",
@@ -36,6 +43,7 @@ const displays = {
     9:"9",
     noMine:"█",
     mine:"▓",
+    flag:"🏳",
 }
 
 const colors = {
@@ -48,6 +56,7 @@ const colors = {
     6:"#007B7B",
     7:"#000000",
     8:"#7B7B7B",
+    flag:"#ff0000",
 }
 
 let board = {
@@ -74,18 +83,27 @@ let board = {
         return -1;
     },
 
-    tile: (X,Y,sweeped,minesAround,IsMine) => {
+    tile: (X,Y,sweeped,minesAround,IsMine,IsFlagged) => {
         const element = document.createElement("p");
         element.innerHTML = displays[minesAround];
-        if (!sweeped) {
-            element.innerHTML = displays.noMine;
+        if (IsFlagged) {
+            element.innerHTML = displays.flag;
+            element.style.color = colors.flag;
+            element.style.transform = "scale(1,0.9) translate(-40%,10%)";
+            element.style.margin = "0px";
+            element.style.background = "#0f0f0f";
         }
         else {
-            if (IsMine) {
-                element.innerHTML = displays.mine;
+            if (!sweeped) {
+                element.innerHTML = displays.noMine;
             }
             else {
-                element.style.color = colors[minesAround];
+                if (IsMine) {
+                    element.innerHTML = displays.mine;
+                }
+                else {
+                    element.style.color = colors[minesAround];
+                }
             }
         }
 
@@ -112,6 +130,12 @@ let board = {
                         board.turn += 1;
                     }
                 }
+                else if (event.button == 2) {
+                    if (!board.isDead) {
+                        const tile = board.query(X,Y);
+                        board.set(X,Y,tile.sweeped,0,tile.IsMine,!tile.IsFlagged);
+                    }
+                }
             }
         }
 
@@ -119,6 +143,7 @@ let board = {
             sweeped:sweeped,
             minesAround:minesAround,
             IsMine:IsMine,
+            IsFlagged:IsFlagged,
 
             element:element,
 
@@ -144,8 +169,8 @@ let board = {
         return num
     },
 
-    set: (X,Y,sweeped,minesAround,IsMine) => {
-        board.contents[Y][X] = board.contents[Y][X].replaceTile(board.tile(X,Y,sweeped,minesAround,IsMine));
+    set: (X,Y,sweeped,minesAround,IsMine,IsFlagged) => {
+        board.contents[Y][X] = board.contents[Y][X].replaceTile(board.tile(X,Y,sweeped,minesAround,IsMine,IsFlagged));
     },
 
     poke: (X,Y) => {
@@ -195,8 +220,6 @@ let board = {
                 Y = Math.max(0,Math.round(Math.random() * (board.height - 1)));
             }
 
-            console.log(X % Width,Y % Height);
-
             board.set(X % Width,Y % Height,false,0,true);
         }
     },
@@ -230,6 +253,8 @@ difficulty.innerHTML = `
     <option value="100|100|1000">XL Easy</option>
     <option value="100|100|2000">XL Medium</option>
     <option value="100|100|3000">XL Hard</option>
+    <option value="100|100|4000">XL Harder</option>
+    <option value="250|250|11000">Might Crash</option>
 `;
 difficulty.value = "Change Difficulty";
 
