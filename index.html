@@ -43,15 +43,25 @@
         <button scriptID="cube.js">Model Viewer</button>
         <button scriptID="hid.js">webHID test (Chrome Only)</button>
         <button scriptID="sweeper.js">Minesweeper</button>
+        <button scriptID="city.js" needsTWGL>City</button>
     </div>
     <script>
+        window.TWGL_LOAD = () => {};
         Array.from(document.getElementById("buttons").children).forEach(child => {
             if (child.nodeName == "BUTTON") {
-                child.after(document.createElement("br"))
+                child.after(document.createElement("br"));
+                let altScript;
                 child.onclick = () => {
+                    if (child.hasAttribute("needsTWGL")) {
+                        altScript = document.createElement("script");
+                        altScript.src = "TWGL.js";
+                        altScript.onload = () => {window.TWGL_LOAD()};
+                    }
+
                     const newScript = document.createElement("script");
                     newScript.src = child.getAttribute("scriptID");
                     document.body.innerHTML = ``;
+                    if (altScript) document.body.appendChild(altScript);
                     document.body.appendChild(newScript);
                 }
             }
